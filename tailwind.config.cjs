@@ -1,16 +1,12 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './index.html',
-    './src/**/*.{js,jsx,ts,tsx,html}'
-  ],
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        neonPurple: '#8B5CF6',
-        neonPink: '#F472B6',
-        neonGold: '#FBBF24'
-      }
-    }
+        ink: "#06010d",
+      },
+    },
   },
   plugins: [],
-}
+};

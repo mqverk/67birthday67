@@ -2,72 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-:root{
-  --neon-purple: #8B5CF6;
-  --neon-pink: #F472B6;
-  --neon-gold: #FBBF24;
+:root {
+  color-scheme: dark;
+  --ink-950: #05010b;
+  --ink-900: #0a0214;
+  --pink-400: #ff5cb3;
+  --violet-400: #a572ff;
+  --gold-400: #f2c45c;
 }
 
-html { box-sizing: border-box; }
-*, *::before, *::after { box-sizing: inherit; }
+* {
+  box-sizing: border-box;
+}
 
-body { font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
-
-html, body, #root {
+html,
+body,
+#root {
+  width: 100%;
   height: 100%;
+  margin: 0;
 }
 
 body {
-  background: radial-gradient(ellipse at 20% 10%, rgba(139,92,246,0.08), transparent 10%), radial-gradient(ellipse at 80% 90%, rgba(244,63,94,0.04), transparent 10%), #000;
-}
-
-.neon-glow {
-  text-shadow: 0 0 16px rgba(139,92,246,0.85), 0 0 36px rgba(244,63,94,0.55);
-}
-
-.glass {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(139,92,246,0.10);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-}
-
-.glitch {
-  position: relative;
-  color: white;
-}
-.glitch::before, .glitch::after {
-  content: attr(data-text);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  opacity: 0.8;
-  clip-path: polygon(0 2%, 100% 2%, 100% 5%, 0 5%);
-}
-.glitch::before { transform: translate(2px, -2px); color: #F472B6; mix-blend-mode: screen; }
-.glitch::after { transform: translate(-2px, 2px); color: #8B5CF6; mix-blend-mode: screen; }
-
-@keyframes shake {
-  0% { transform: translate(0,0) }
-  25% { transform: translate(6px, -4px) rotate(-1deg) }
-  50% { transform: translate(-6px, 4px) rotate(1deg) }
-  75% { transform: translate(4px, -2px) rotate(-0.5deg) }
-  100% { transform: translate(0,0) }
-}
-.shake {
-  animation: shake 550ms cubic-bezier(.36,.07,.19,.97) both;
-}
-
-.speed-line {
-  position: absolute;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.9));
-  opacity: 0.18;
-}
-
-.typewriter {
-  border-right: 2px solid rgba(255,255,255,0.6);
-  white-space: nowrap;
+  font-family: "Sora", sans-serif;
+  background:
+    radial-gradient(circle at 20% 20%, #1b0930 0%, #090213 36%, #040109 62%, #020103 100%),
+    linear-gradient(120deg, #05010c 0%, #090114 48%, #040108 100%);
+  color: #ffffff;
   overflow: hidden;
 }

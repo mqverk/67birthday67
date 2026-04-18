@@ -1,7 +1,7 @@
 {
-  "name": "srijita-birthday",
-  "version": "1.0.0",
+  "name": "srijita-cinematic-birthday",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,19 +9,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "framer-motion": "^10.12.12",
-    "lucide-react": "^0.283.0",
-    "canvas-confetti": "^1.6.0",
-    "three": "^0.157.0",
-    "gsap": "^3.12.2"
+    "@react-three/drei": "^9.120.5",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "framer-motion": "^12.6.2",
+    "gsap": "^3.12.7",
+    "lucide-react": "^0.511.0",
+    "postprocessing": "^6.37.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.174.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "tailwindcss": "^3.5.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.4.15"
   }
 }
