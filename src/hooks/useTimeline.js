@@ -13,6 +13,7 @@ const JOURNEY_MESSAGES = Object.freeze([
 ]);
 
 const BASELINE_DURATION = 196;
+const TIMELINE_SPEED = 1.08;
 
 const INITIAL_JOURNEY = Object.freeze({
   phase: "intro",
@@ -880,6 +881,8 @@ export function useTimeline({
         progress: 1,
       }));
     }, null, BASELINE_DURATION);
+
+    timeline.timeScale(TIMELINE_SPEED);
 
     timelineRef.current = timeline;
     return timeline;
