@@ -17,8 +17,8 @@ function IntroSequence({
         there was a quiet spark waiting to become light.
       </p>
 
-      <h1 ref={nameRef} data-text="SRIJITA" className={`name-gradual ${phase === "buildup" ? "name-vibrate" : ""}`}>
-        SRIJITA
+      <h1 ref={nameRef} data-text="SHRIJITA" className={`name-gradual ${phase === "buildup" ? "name-vibrate" : ""}`}>
+        SHRIJITA
       </h1>
 
       <p ref={discoveryCaptionRef} className="discovery-caption">

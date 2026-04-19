@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { gsap } from "gsap";
 import { RotateCcw, Volume2, VolumeX } from "lucide-react";
@@ -9,10 +9,13 @@ import Reveal from "./components/Reveal";
 import ConfessionScene from "./components/ConfessionScene";
 import { useTimeline } from "./hooks/useTimeline";
 import { useMusicEngine } from "./hooks/useMusicEngine";
+import { usePerformanceProfile } from "./hooks/usePerformanceProfile";
 
 const Scene = lazy(() => import("./components/Scene"));
 
 function App() {
+  const performanceProfile = usePerformanceProfile();
+
   const sceneRig = useRef({
     drift: 0.08,
     push: 0,
@@ -87,6 +90,7 @@ function App() {
     setJourneyMood: music.setJourneyMood,
     dropSilence: music.dropSilence,
     resumeAfterDrop: music.resumeAfterDrop,
+    performanceProfile,
   });
 
   useEffect(() => {
@@ -94,6 +98,10 @@ function App() {
   }, [start]);
 
   useEffect(() => {
+    if (!performanceProfile.pointerTracking) {
+      return undefined;
+    }
+
     const cursorEl = cursorGlowRef.current;
     if (!cursorEl) {
       return undefined;
@@ -108,23 +116,43 @@ function App() {
       ease: "power3.out",
     });
 
-    const moveCursor = (event) => {
+    let rafId = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    const renderPointer = () => {
       const width = window.innerWidth || 1;
       const height = window.innerHeight || 1;
 
-      cursorRef.current.x = (event.clientX / width - 0.5) * 2;
-      cursorRef.current.y = (event.clientY / height - 0.5) * -2;
+      cursorRef.current.x = (pointerX / width - 0.5) * 2;
+      cursorRef.current.y = (pointerY / height - 0.5) * -2;
 
-      xTo(event.clientX - 150);
-      yTo(event.clientY - 150);
+      xTo(pointerX - 150);
+      yTo(pointerY - 150);
+      rafId = 0;
+    };
+
+    const moveCursor = (event) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+
+      if (rafId) {
+        return;
+      }
+
+      rafId = window.requestAnimationFrame(renderPointer);
     };
 
     window.addEventListener("pointermove", moveCursor, { passive: true });
 
     return () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+
       window.removeEventListener("pointermove", moveCursor);
     };
-  }, []);
+  }, [performanceProfile.pointerTracking]);
 
   useEffect(() => {
     if (!music.isEnabled || music.isPlaying) {
@@ -179,25 +207,31 @@ function App() {
     };
   }, [journey.waitingForInteraction, advanceJourney]);
 
-  const handleReplay = () => {
+  const handleReplay = useCallback(() => {
     replay();
 
     if (music.isEnabled && !music.isPlaying) {
       music.start();
     }
-  };
+  }, [music.isEnabled, music.isPlaying, music.start, replay]);
+
+  const rootClassName = useMemo(
+    () => `cinematic-root phase-${journey.phase} perf-${performanceProfile.tier}`,
+    [journey.phase, performanceProfile.tier],
+  );
 
   return (
-    <main className={`cinematic-root phase-${journey.phase}`}>
+    <main className={rootClassName}>
       <div className="experience-stage">
         <Canvas
           className="cinematic-canvas"
           camera={{ position: [0, 0, 18], fov: 48, near: 0.1, far: 250 }}
-          dpr={[1, 1.65]}
-          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          dpr={[1, performanceProfile.dprMax]}
+          gl={{ antialias: performanceProfile.antialias, alpha: true, powerPreference: "high-performance" }}
+          performance={{ min: 0.6, max: 1, debounce: 220 }}
         >
           <Suspense fallback={null}>
-            <Scene sceneRig={sceneRig} cursorRef={cursorRef} />
+            <Scene sceneRig={sceneRig} cursorRef={cursorRef} performanceProfile={performanceProfile} />
           </Suspense>
         </Canvas>
 
@@ -210,6 +244,7 @@ function App() {
           silhouetteRef={silhouetteRef}
           frameRef={frameRef}
           phase={journey.phase}
+          performanceProfile={performanceProfile}
         />
 
         <div ref={openingBlackRef} className="opening-black pointer-events-none" />

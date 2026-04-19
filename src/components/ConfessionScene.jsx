@@ -23,7 +23,7 @@ function ConfessionScene({
       </p>
 
       <p ref={line3Ref} className="confession-line confession-line-final">
-        And... I think I like you.
+        Will you be mine?
       </p>
     </div>
   );
