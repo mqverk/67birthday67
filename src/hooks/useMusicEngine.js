@@ -1,64 +1,73 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const BPM = 148;
+const BPM = 136;
 const STEPS_PER_BEAT = 4;
 
-const KICK_PATTERN = [1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0];
-const SNARE_PATTERN = [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0];
-const HAT_PATTERN = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-const BASS_PATTERN = [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0];
+const KICK_PATTERN = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0];
+const SNARE_PATTERN = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
+const HAT_PATTERN = [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1];
+const BASS_PATTERN = [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0];
+const LEAD_PATTERN = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0];
 
-const BASS_NOTES = [55, 55, 65.41, 73.42];
+const BASS_NOTES = [55, 65.41, 73.42, 82.41];
+const LEAD_NOTES = [392, 440, 493.88, 587.33, 659.25, 587.33, 493.88, 440];
 
 const JOURNEY_MOODS = Object.freeze({
   intro: {
-    masterGain: 0.2,
-    filter: 1200,
-    beatEnergy: 0.32,
-    hatEnergy: 0.42,
-    padEnergy: 0.92,
+    masterGain: 0.22,
+    filter: 2200,
+    beatEnergy: 0.28,
+    hatEnergy: 0.46,
+    padEnergy: 0.95,
+    leadEnergy: 0.2,
   },
   discovery: {
-    masterGain: 0.26,
-    filter: 1820,
-    beatEnergy: 0.52,
-    hatEnergy: 0.6,
-    padEnergy: 0.86,
+    masterGain: 0.28,
+    filter: 2800,
+    beatEnergy: 0.5,
+    hatEnergy: 0.68,
+    padEnergy: 0.9,
+    leadEnergy: 0.42,
   },
   connection: {
-    masterGain: 0.3,
-    filter: 2200,
-    beatEnergy: 0.62,
-    hatEnergy: 0.7,
-    padEnergy: 0.82,
+    masterGain: 0.33,
+    filter: 3400,
+    beatEnergy: 0.66,
+    hatEnergy: 0.78,
+    padEnergy: 0.84,
+    leadEnergy: 0.58,
   },
   buildup: {
-    masterGain: 0.34,
-    filter: 2600,
-    beatEnergy: 0.78,
-    hatEnergy: 0.82,
+    masterGain: 0.38,
+    filter: 4200,
+    beatEnergy: 0.82,
+    hatEnergy: 0.9,
     padEnergy: 0.72,
+    leadEnergy: 0.8,
   },
   drop: {
-    masterGain: 0.5,
-    filter: 4200,
+    masterGain: 0.52,
+    filter: 6200,
     beatEnergy: 1,
     hatEnergy: 1,
     padEnergy: 0.64,
+    leadEnergy: 1,
   },
   afterglow: {
-    masterGain: 0.18,
-    filter: 1050,
-    beatEnergy: 0.18,
-    hatEnergy: 0.28,
+    masterGain: 0.2,
+    filter: 2000,
+    beatEnergy: 0.15,
+    hatEnergy: 0.25,
     padEnergy: 0.98,
+    leadEnergy: 0.16,
   },
   confession: {
-    masterGain: 0.11,
-    filter: 820,
-    beatEnergy: 0.05,
-    hatEnergy: 0.08,
+    masterGain: 0.12,
+    filter: 1600,
+    beatEnergy: 0.03,
+    hatEnergy: 0.07,
     padEnergy: 1,
+    leadEnergy: 0.08,
   },
 });
 
@@ -82,12 +91,12 @@ function scheduleKick(context, destination, time, intensity) {
   const gain = context.createGain();
 
   oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(160, time);
-  oscillator.frequency.exponentialRampToValueAtTime(42, time + 0.16);
+  oscillator.frequency.setValueAtTime(176, time);
+  oscillator.frequency.exponentialRampToValueAtTime(50, time + 0.14);
 
   gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.exponentialRampToValueAtTime(0.88 * intensity, time + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.21);
+  gain.gain.exponentialRampToValueAtTime(0.76 * intensity, time + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.18);
 
   oscillator.connect(gain);
   gain.connect(destination);
@@ -102,13 +111,13 @@ function scheduleSnare(context, destination, noiseBuffer, time, intensity) {
 
   const noiseFilter = context.createBiquadFilter();
   noiseFilter.type = "bandpass";
-  noiseFilter.frequency.value = 2100;
-  noiseFilter.Q.value = 0.74;
+  noiseFilter.frequency.value = 2550;
+  noiseFilter.Q.value = 0.62;
 
   const noiseGain = context.createGain();
   noiseGain.gain.setValueAtTime(0.0001, time);
-  noiseGain.gain.exponentialRampToValueAtTime(0.25 * intensity, time + 0.004);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+  noiseGain.gain.exponentialRampToValueAtTime(0.22 * intensity, time + 0.003);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
 
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
@@ -118,14 +127,14 @@ function scheduleSnare(context, destination, noiseBuffer, time, intensity) {
   noise.stop(time + 0.16);
 
   const toneOscillator = context.createOscillator();
-  toneOscillator.type = "triangle";
-  toneOscillator.frequency.setValueAtTime(240, time);
-  toneOscillator.frequency.exponentialRampToValueAtTime(120, time + 0.09);
+  toneOscillator.type = "square";
+  toneOscillator.frequency.setValueAtTime(310, time);
+  toneOscillator.frequency.exponentialRampToValueAtTime(155, time + 0.08);
 
   const toneGain = context.createGain();
   toneGain.gain.setValueAtTime(0.0001, time);
-  toneGain.gain.exponentialRampToValueAtTime(0.23 * intensity, time + 0.004);
-  toneGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
+  toneGain.gain.exponentialRampToValueAtTime(0.17 * intensity, time + 0.003);
+  toneGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
 
   toneOscillator.connect(toneGain);
   toneGain.connect(destination);
@@ -140,12 +149,12 @@ function scheduleHat(context, destination, noiseBuffer, time, intensity) {
 
   const highpass = context.createBiquadFilter();
   highpass.type = "highpass";
-  highpass.frequency.value = 7200;
+  highpass.frequency.value = 8600;
 
   const gain = context.createGain();
   gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.exponentialRampToValueAtTime(0.08 * intensity, time + 0.003);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.065 * intensity, time + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
 
   noise.connect(highpass);
   highpass.connect(gain);
@@ -160,16 +169,16 @@ function scheduleBass(context, destination, time, step, intensity) {
   const filter = context.createBiquadFilter();
   const gain = context.createGain();
 
-  oscillator.type = "sawtooth";
+  oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(BASS_NOTES[Math.floor(step / 4) % BASS_NOTES.length], time);
 
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(280, time);
-  filter.frequency.linearRampToValueAtTime(700, time + 0.19);
+  filter.frequency.setValueAtTime(360, time);
+  filter.frequency.linearRampToValueAtTime(980, time + 0.19);
 
   gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.exponentialRampToValueAtTime(0.24 * intensity, time + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.24);
+  gain.gain.exponentialRampToValueAtTime(0.22 * intensity, time + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.22);
 
   oscillator.connect(filter);
   filter.connect(gain);
@@ -179,18 +188,54 @@ function scheduleBass(context, destination, time, step, intensity) {
   oscillator.stop(time + 0.28);
 }
 
+function scheduleLead(context, destination, time, step, intensity) {
+  const main = context.createOscillator();
+  const shimmer = context.createOscillator();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  const note = LEAD_NOTES[step % LEAD_NOTES.length];
+
+  main.type = "triangle";
+  shimmer.type = "sine";
+
+  main.frequency.setValueAtTime(note, time);
+  shimmer.frequency.setValueAtTime(note * 2, time);
+  shimmer.detune.setValueAtTime(8, time);
+
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(2600, time);
+  filter.Q.value = 0.95;
+
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(0.1 * intensity, time + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
+
+  main.connect(filter);
+  shimmer.connect(filter);
+  filter.connect(gain);
+  gain.connect(destination);
+
+  main.start(time);
+  shimmer.start(time);
+
+  main.stop(time + 0.18);
+  shimmer.stop(time + 0.18);
+}
+
 export function useMusicEngine() {
   const contextRef = useRef(null);
   const musicBusRef = useRef(null);
   const masterGainRef = useRef(null);
   const toneFilterRef = useRef(null);
+  const sparkleShelfRef = useRef(null);
   const noiseBufferRef = useRef(null);
 
-  const schedulerRef = useRef(null);
   const rafRef = useRef(null);
   const rafLastTickRef = useRef(0);
   const stepRef = useRef(0);
   const nextStepTimeRef = useRef(0);
+  const wasPlayingBeforeHiddenRef = useRef(false);
 
   const padRef = useRef(null);
   const intensityRef = useRef(0.3);
@@ -202,13 +247,14 @@ export function useMusicEngine() {
   const beatEnergyRef = useRef(JOURNEY_MOODS.intro.beatEnergy);
   const hatEnergyRef = useRef(JOURNEY_MOODS.intro.hatEnergy);
   const padEnergyRef = useRef(JOURNEY_MOODS.intro.padEnergy);
+  const leadEnergyRef = useRef(JOURNEY_MOODS.intro.leadEnergy);
 
   const [isEnabled, setIsEnabled] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [needsUserGesture, setNeedsUserGesture] = useState(false);
 
   const computeTargetGain = useCallback(() => {
-    return clamp(masterTargetRef.current * (0.8 + intensityRef.current * 0.38), 0.04, 0.64);
+    return clamp(masterTargetRef.current * (0.82 + intensityRef.current * 0.36), 0.04, 0.68);
   }, []);
 
   const ensureContext = useCallback(async () => {
@@ -229,8 +275,13 @@ export function useMusicEngine() {
 
       const toneFilter = context.createBiquadFilter();
       toneFilter.type = "lowpass";
-      toneFilter.frequency.value = 1300;
-      toneFilter.Q.value = 0.8;
+      toneFilter.frequency.value = 2400;
+      toneFilter.Q.value = 0.68;
+
+      const sparkleShelf = context.createBiquadFilter();
+      sparkleShelf.type = "highshelf";
+      sparkleShelf.frequency.value = 2800;
+      sparkleShelf.gain.value = 3.2;
 
       const compressor = context.createDynamicsCompressor();
       compressor.threshold.value = -30;
@@ -243,7 +294,8 @@ export function useMusicEngine() {
       masterGain.gain.value = 0.0001;
 
       musicBus.connect(toneFilter);
-      toneFilter.connect(compressor);
+      toneFilter.connect(sparkleShelf);
+      sparkleShelf.connect(compressor);
       compressor.connect(masterGain);
       masterGain.connect(context.destination);
 
@@ -251,6 +303,7 @@ export function useMusicEngine() {
       musicBusRef.current = musicBus;
       masterGainRef.current = masterGain;
       toneFilterRef.current = toneFilter;
+      sparkleShelfRef.current = sparkleShelf;
       noiseBufferRef.current = createNoiseBuffer(context);
     }
 
@@ -288,21 +341,21 @@ export function useMusicEngine() {
     const lfoGain = context.createGain();
 
     oscillator.type = "sawtooth";
-    oscillator.frequency.value = 82.41;
+    oscillator.frequency.value = 98;
 
-    shimmer.type = "triangle";
-    shimmer.frequency.value = 123.47;
+    shimmer.type = "sine";
+    shimmer.frequency.value = 196;
 
     lowpass.type = "lowpass";
-    lowpass.frequency.value = 560;
+    lowpass.frequency.value = 920;
 
     gain.gain.value = 0.0001;
 
     shimmerGain.gain.value = 0.0001;
 
     lfo.type = "sine";
-    lfo.frequency.value = 0.08;
-    lfoGain.gain.value = 18;
+    lfo.frequency.value = 0.12;
+    lfoGain.gain.value = 12;
 
     lfo.connect(lfoGain);
     lfoGain.connect(oscillator.detune);
@@ -321,7 +374,7 @@ export function useMusicEngine() {
     shimmer.start();
     lfo.start();
 
-    const targetPadGain = 0.03 + padEnergyRef.current * 0.11;
+    const targetPadGain = 0.035 + padEnergyRef.current * 0.12;
 
     gain.gain.linearRampToValueAtTime(targetPadGain, context.currentTime + 0.9);
     shimmerGain.gain.linearRampToValueAtTime(targetPadGain * 0.35, context.currentTime + 1.2);
@@ -380,14 +433,15 @@ export function useMusicEngine() {
 
     const beatEnergy = beatEnergyRef.current;
     const hatEnergy = hatEnergyRef.current;
+    const leadEnergy = leadEnergyRef.current;
     const dynamicIntensity = intensityRef.current;
 
     if (KICK_PATTERN[step % KICK_PATTERN.length] && beatEnergy > 0.14) {
-      scheduleKick(context, destination, time, 0.28 + beatEnergy * (0.45 + dynamicIntensity * 0.5));
+      scheduleKick(context, destination, time, 0.25 + beatEnergy * (0.48 + dynamicIntensity * 0.46));
     }
 
     if (SNARE_PATTERN[step % SNARE_PATTERN.length] && beatEnergy > 0.32) {
-      scheduleSnare(context, destination, noiseBuffer, time, 0.25 + beatEnergy * 0.75);
+      scheduleSnare(context, destination, noiseBuffer, time, 0.22 + beatEnergy * 0.72);
     }
 
     if (
@@ -399,6 +453,16 @@ export function useMusicEngine() {
 
     if (BASS_PATTERN[step % BASS_PATTERN.length] && beatEnergy > 0.22) {
       scheduleBass(context, destination, time, step, 0.28 + beatEnergy * (0.7 + dynamicIntensity * 0.2));
+    }
+
+    if (LEAD_PATTERN[step % LEAD_PATTERN.length] && leadEnergy > 0.12) {
+      scheduleLead(
+        context,
+        destination,
+        time,
+        step,
+        0.24 + leadEnergy * (0.62 + dynamicIntensity * 0.24),
+      );
     }
   }, []);
 
@@ -453,11 +517,6 @@ export function useMusicEngine() {
     stepRef.current = 0;
     nextStepTimeRef.current = context.currentTime + 0.05;
 
-    if (schedulerRef.current) {
-      window.clearInterval(schedulerRef.current);
-      schedulerRef.current = null;
-    }
-
     if (rafRef.current) {
       window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -482,11 +541,6 @@ export function useMusicEngine() {
   const stop = useCallback(() => {
     const context = contextRef.current;
     const masterGain = masterGainRef.current;
-
-    if (schedulerRef.current) {
-      window.clearInterval(schedulerRef.current);
-      schedulerRef.current = null;
-    }
 
     if (rafRef.current) {
       window.cancelAnimationFrame(rafRef.current);
@@ -526,9 +580,10 @@ export function useMusicEngine() {
 
     const context = contextRef.current;
     const toneFilter = toneFilterRef.current;
+    const sparkleShelf = sparkleShelfRef.current;
     const masterGain = masterGainRef.current;
 
-    if (!context || !toneFilter || !masterGain) {
+    if (!context || !toneFilter || !masterGain || !sparkleShelf) {
       return;
     }
 
@@ -536,6 +591,12 @@ export function useMusicEngine() {
       JOURNEY_MOODS[moodRef.current].filter + clamped * 1200,
       context.currentTime,
       0.18,
+    );
+
+    sparkleShelf.gain.setTargetAtTime(
+      2.6 + JOURNEY_MOODS[moodRef.current].hatEnergy * 4.2 + clamped * 2.2,
+      context.currentTime,
+      0.24,
     );
 
     if (padRef.current) {
@@ -549,7 +610,7 @@ export function useMusicEngine() {
       );
 
       padRef.current.lowpass.frequency.setTargetAtTime(
-        360 + padEnergyRef.current * 900 + clamped * 600,
+        520 + padEnergyRef.current * 1500 + clamped * 900,
         context.currentTime,
         0.3,
       );
@@ -568,16 +629,19 @@ export function useMusicEngine() {
     beatEnergyRef.current = config.beatEnergy;
     hatEnergyRef.current = config.hatEnergy;
     padEnergyRef.current = config.padEnergy;
+    leadEnergyRef.current = config.leadEnergy;
 
     const context = contextRef.current;
     const masterGain = masterGainRef.current;
     const toneFilter = toneFilterRef.current;
+    const sparkleShelf = sparkleShelfRef.current;
 
-    if (!context || !masterGain || !toneFilter) {
+    if (!context || !masterGain || !toneFilter || !sparkleShelf) {
       return;
     }
 
     toneFilter.frequency.setTargetAtTime(config.filter, context.currentTime, 0.35);
+    sparkleShelf.gain.setTargetAtTime(2.4 + config.hatEnergy * 4.2, context.currentTime, 0.32);
 
     if (padRef.current) {
       const targetPad = 0.025 + config.padEnergy * 0.105;
@@ -585,7 +649,7 @@ export function useMusicEngine() {
       padRef.current.gain.gain.setTargetAtTime(targetPad, context.currentTime, 0.4);
       padRef.current.shimmerGain.gain.setTargetAtTime(targetPad * 0.35, context.currentTime, 0.45);
       padRef.current.lowpass.frequency.setTargetAtTime(
-        350 + config.padEnergy * 980,
+        500 + config.padEnergy * 1550,
         context.currentTime,
         0.45,
       );
@@ -648,12 +712,56 @@ export function useMusicEngine() {
     };
   }, [isEnabled, start]);
 
-  useEffect(
-    () => () => {
-      if (schedulerRef.current) {
-        window.clearInterval(schedulerRef.current);
+  useEffect(() => {
+    const handleVisibility = async () => {
+      const context = contextRef.current;
+
+      if (document.hidden) {
+        wasPlayingBeforeHiddenRef.current = isPlayingRef.current;
+
+        if (rafRef.current) {
+          window.cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+
+        if (context && context.state === "running") {
+          try {
+            await context.suspend();
+          } catch {
+            // Ignore and keep current playback state.
+          }
+        }
+
+        return;
       }
 
+      if (!wasPlayingBeforeHiddenRef.current || !isEnabled) {
+        return;
+      }
+
+      const resumedContext = await ensureContext();
+
+      if (!resumedContext || !isPlayingRef.current) {
+        return;
+      }
+
+      nextStepTimeRef.current = Math.max(nextStepTimeRef.current, resumedContext.currentTime + 0.04);
+
+      if (!rafRef.current) {
+        rafLastTickRef.current = typeof performance !== "undefined" ? performance.now() : 0;
+        rafRef.current = window.requestAnimationFrame(schedulerLoop);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [ensureContext, isEnabled, schedulerLoop]);
+
+  useEffect(
+    () => () => {
       if (rafRef.current) {
         window.cancelAnimationFrame(rafRef.current);
       }

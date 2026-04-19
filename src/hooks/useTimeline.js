@@ -81,10 +81,13 @@ export function useTimeline({
   setJourneyMood,
   dropSilence,
   resumeAfterDrop,
+  performanceProfile,
 }) {
   const timelineRef = useRef(null);
   const waitingForInteractionRef = useRef(false);
   const lastProgressRef = useRef(0);
+  const lastIntensityTimeRef = useRef(-1);
+  const autoPausedByVisibilityRef = useRef(false);
 
   const [journey, setJourney] = useState(INITIAL_JOURNEY);
   const [messageText, setMessageText] = useState(JOURNEY_MESSAGES[0]);
@@ -118,6 +121,12 @@ export function useTimeline({
       showConnection: true,
     }));
   }, []);
+
+  const progressStep = performanceProfile?.progressStep ?? 0.008;
+  const intensityUpdateStep = performanceProfile?.intensityUpdateStep ?? 0.065;
+  const cutStride = Math.max(performanceProfile?.cutStride ?? 1, 1);
+  const speedlineOpacityScale = performanceProfile?.speedlineOpacityScale ?? 1;
+  const lowTier = performanceProfile?.tier === "low";
 
   const buildTimeline = useCallback(() => {
     const rig = sceneRig.current;
@@ -182,6 +191,8 @@ export function useTimeline({
     applyRig(rig, DEFAULT_RIG);
     waitingForInteractionRef.current = false;
     lastProgressRef.current = 0;
+    lastIntensityTimeRef.current = -1;
+    autoPausedByVisibilityRef.current = false;
 
     setMessageText(JOURNEY_MESSAGES[0]);
     setJourney({
@@ -196,7 +207,7 @@ export function useTimeline({
 
     gsap.set(hardCutEl, { autoAlpha: 0 });
     gsap.set(glitchOverlayEl, { autoAlpha: 0.08 });
-    gsap.set(speedLinesEl, { autoAlpha: 0.44, scale: 1.02 });
+    gsap.set(speedLinesEl, { autoAlpha: 0.44 * speedlineOpacityScale, scale: 1.02 });
     gsap.set(panelLeftEl, { xPercent: -108, autoAlpha: 0.84 });
     gsap.set(panelRightEl, { xPercent: 108, autoAlpha: 0.84 });
     gsap.set(silhouetteEl, { autoAlpha: 0.44, scale: 1.04 });
@@ -264,7 +275,7 @@ export function useTimeline({
         const time = timeline.time();
         const progress = clamp(time / BASELINE_DURATION, 0, 1);
 
-        if (Math.abs(progress - lastProgressRef.current) > 0.008) {
+        if (Math.abs(progress - lastProgressRef.current) > progressStep) {
           lastProgressRef.current = progress;
 
           setJourney((prev) => ({
@@ -276,6 +287,15 @@ export function useTimeline({
         if (!setIntensity) {
           return;
         }
+
+        if (
+          lastIntensityTimeRef.current >= 0 &&
+          time - lastIntensityTimeRef.current < intensityUpdateStep
+        ) {
+          return;
+        }
+
+        lastIntensityTimeRef.current = time;
 
         if (time < 20) {
           setIntensity(0.5 + (time / 20) * 0.12);
@@ -296,47 +316,49 @@ export function useTimeline({
     });
 
     const addAnimeCut = (time, index = 0) => {
-      const burst = 0.2 + (index % 4) * 0.06;
-      const panelShift = 8 + (index % 3) * 5;
+      const burst = (lowTier ? 0.1 : 0.14) + (index % 4) * 0.05;
+      const panelShift = 7 + (index % 3) * (lowTier ? 2 : 4);
 
-      timeline.to(hardCutEl, { autoAlpha: 1, duration: 0.045, ease: "none" }, time);
-      timeline.to(hardCutEl, { autoAlpha: 0, duration: 0.09, ease: "power4.out" }, time + 0.045);
+      timeline.to(hardCutEl, { autoAlpha: 0.85, duration: 0.035, ease: "none" }, time);
+      timeline.to(hardCutEl, { autoAlpha: 0, duration: 0.16, ease: "sine.out" }, time + 0.035);
 
-      timeline.to(glitchOverlayEl, { autoAlpha: 0.95, duration: 0.06, ease: "none" }, time);
-      timeline.to(
-        glitchOverlayEl,
-        { autoAlpha: 0.08, duration: 0.2, ease: "power2.out" },
-        time + 0.06,
-      );
+      if (!lowTier) {
+        timeline.to(glitchOverlayEl, { autoAlpha: 0.62, duration: 0.06, ease: "none" }, time);
+        timeline.to(
+          glitchOverlayEl,
+          { autoAlpha: 0.08, duration: 0.24, ease: "sine.out" },
+          time + 0.06,
+        );
 
-      timeline.to(
-        panelLeftEl,
-        {
-          xPercent: -panelShift,
-          duration: 0.09,
-          ease: "steps(2)",
-        },
-        time,
-      );
+        timeline.to(
+          panelLeftEl,
+          {
+            xPercent: -panelShift,
+            duration: 0.09,
+            ease: "steps(2)",
+          },
+          time,
+        );
 
-      timeline.to(
-        panelRightEl,
-        {
-          xPercent: panelShift,
-          duration: 0.09,
-          ease: "steps(2)",
-        },
-        time,
-      );
+        timeline.to(
+          panelRightEl,
+          {
+            xPercent: panelShift,
+            duration: 0.09,
+            ease: "steps(2)",
+          },
+          time,
+        );
 
-      timeline.to(panelLeftEl, { xPercent: -108, duration: 0.18, ease: "power3.out" }, time + 0.09);
-      timeline.to(panelRightEl, { xPercent: 108, duration: 0.18, ease: "power3.out" }, time + 0.09);
+        timeline.to(panelLeftEl, { xPercent: -108, duration: 0.24, ease: "sine.out" }, time + 0.09);
+        timeline.to(panelRightEl, { xPercent: 108, duration: 0.24, ease: "sine.out" }, time + 0.09);
+      }
 
       timeline.to(rig, { shake: burst, duration: 0.08, ease: "power4.out" }, time);
-      timeline.to(rig, { shake: 0.06, duration: 0.13, ease: "power3.in" }, time + 0.08);
+      timeline.to(rig, { shake: 0.045, duration: 0.17, ease: "sine.in" }, time + 0.08);
 
-      timeline.to(speedLinesEl, { autoAlpha: 0.95, duration: 0.07, ease: "none" }, time);
-      timeline.to(speedLinesEl, { autoAlpha: 0.46, duration: 0.2, ease: "power2.out" }, time + 0.07);
+      timeline.to(speedLinesEl, { autoAlpha: 0.86 * speedlineOpacityScale, duration: 0.07, ease: "none" }, time);
+      timeline.to(speedLinesEl, { autoAlpha: 0.5 * speedlineOpacityScale, duration: 0.24, ease: "sine.out" }, time + 0.07);
     };
 
     const dopamineTimes = [
@@ -347,9 +369,11 @@ export function useTimeline({
       127, 130, 133, 136, 139, 142, 145, 148,
     ];
 
-    dopamineTimes.forEach((time, index) => {
+    dopamineTimes
+      .filter((_, index) => index % cutStride === 0)
+      .forEach((time, index) => {
       addAnimeCut(time, index);
-    });
+      });
 
     timeline.call(() => {
       setJourneyPhase("intro", "Intro", 0);
@@ -763,8 +787,31 @@ export function useTimeline({
         y: 0,
         filter: "blur(0px)",
         duration: 3.6,
+        ease: "sine.out",
       },
       165.2,
+    );
+
+    timeline.to(
+      afterglowEl,
+      {
+        autoAlpha: 0,
+        y: 16,
+        duration: 1.6,
+        ease: "sine.inOut",
+      },
+      171.4,
+    );
+
+    timeline.to(
+      revealEl,
+      {
+        autoAlpha: 0.28,
+        scale: 1.12,
+        duration: 2.2,
+        ease: "sine.out",
+      },
+      171.2,
     );
 
     timeline.call(() => {
@@ -778,8 +825,8 @@ export function useTimeline({
         autoAlpha: 1,
         y: 0,
         filter: "blur(0px)",
-        duration: 1.8,
-        ease: "power3.out",
+        duration: 2.1,
+        ease: "sine.out",
       },
       172,
     );
@@ -790,9 +837,10 @@ export function useTimeline({
         autoAlpha: 1,
         y: 0,
         filter: "blur(0px)",
-        duration: 2.2,
+        duration: 2.6,
+        ease: "sine.out",
       },
-      173,
+      173.1,
     );
 
     timeline.to(
@@ -801,9 +849,10 @@ export function useTimeline({
         autoAlpha: 1,
         y: 0,
         filter: "blur(0px)",
-        duration: 2.2,
+        duration: 2.6,
+        ease: "sine.out",
       },
-      178,
+      177.9,
     );
 
     timeline.to(
@@ -812,15 +861,16 @@ export function useTimeline({
         autoAlpha: 1,
         y: 0,
         filter: "blur(0px)",
-        duration: 2.4,
+        duration: 2.8,
+        ease: "sine.out",
       },
-      184,
+      183.7,
     );
 
-    timeline.to(speedLinesEl, { autoAlpha: 0.12, duration: 8, ease: "sine.out" }, 174);
-    timeline.to(glitchOverlayEl, { autoAlpha: 0.02, duration: 8, ease: "sine.out" }, 174);
-    timeline.to(frameEl, { autoAlpha: 0.35, duration: 8, ease: "sine.out" }, 174);
-    timeline.to(silhouetteEl, { autoAlpha: 0.2, duration: 8, ease: "sine.out" }, 174);
+    timeline.to(speedLinesEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 174);
+    timeline.to(glitchOverlayEl, { autoAlpha: 0.03, duration: 8.6, ease: "sine.out" }, 174);
+    timeline.to(frameEl, { autoAlpha: 0.42, duration: 8.6, ease: "sine.out" }, 174);
+    timeline.to(silhouetteEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 174);
 
     timeline.call(() => {
       setWaitingForInteraction(false);
@@ -857,6 +907,11 @@ export function useTimeline({
     resumeAfterDrop,
     revealRef,
     sceneRig,
+    cutStride,
+    intensityUpdateStep,
+    lowTier,
+    progressStep,
+    speedlineOpacityScale,
     setConnectionMessage,
     setIntensity,
     setJourneyMood,
@@ -902,6 +957,35 @@ export function useTimeline({
     },
     [],
   );
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const timeline = timelineRef.current;
+      if (!timeline) {
+        return;
+      }
+
+      if (document.hidden) {
+        if (!timeline.paused()) {
+          autoPausedByVisibilityRef.current = true;
+          timeline.pause();
+        }
+
+        return;
+      }
+
+      if (autoPausedByVisibilityRef.current && !waitingForInteractionRef.current) {
+        autoPausedByVisibilityRef.current = false;
+        timeline.play();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   return {
     journey,
