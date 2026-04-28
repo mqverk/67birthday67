@@ -6,7 +6,6 @@ import IntroSequence from "./components/IntroSequence";
 import ConnectionJourney from "./components/ConnectionJourney";
 import AnimeOverlay from "./components/AnimeOverlay";
 import Reveal from "./components/Reveal";
-import ConfessionScene from "./components/ConfessionScene";
 import { useTimeline } from "./hooks/useTimeline";
 import { useMusicEngine } from "./hooks/useMusicEngine";
 import { usePerformanceProfile } from "./hooks/usePerformanceProfile";
@@ -43,10 +42,6 @@ function App() {
   const connectionMessageRef = useRef(null);
   const revealRef = useRef(null);
   const afterglowRef = useRef(null);
-  const confessionRef = useRef(null);
-  const confessionLine1Ref = useRef(null);
-  const confessionLine2Ref = useRef(null);
-  const confessionLine3Ref = useRef(null);
 
   const speedLinesRef = useRef(null);
   const panelLeftRef = useRef(null);
@@ -72,10 +67,6 @@ function App() {
     connectionMessageRef,
     revealRef,
     afterglowRef,
-    confessionRef,
-    confessionLine1Ref,
-    confessionLine2Ref,
-    confessionLine3Ref,
     speedLinesRef,
     panelLeftRef,
     panelRightRef,
@@ -272,14 +263,6 @@ function App() {
         />
 
         <Reveal revealRef={revealRef} afterglowRef={afterglowRef} phase={journey.phase} />
-
-        <ConfessionScene
-          confessionRef={confessionRef}
-          line1Ref={confessionLine1Ref}
-          line2Ref={confessionLine2Ref}
-          line3Ref={confessionLine3Ref}
-          phase={journey.phase}
-        />
       </div>
 
       <div className="journey-headup pointer-events-none">
