@@ -12,7 +12,7 @@ const JOURNEY_MESSAGES = Object.freeze([
   "And this whole sky is ready to answer with light.",
 ]);
 
-const BASELINE_DURATION = 196;
+const BASELINE_DURATION = 180;
 const TIMELINE_SPEED = 1.08;
 
 const INITIAL_JOURNEY = Object.freeze({
@@ -64,10 +64,6 @@ export function useTimeline({
   connectionMessageRef,
   revealRef,
   afterglowRef,
-  confessionRef,
-  confessionLine1Ref,
-  confessionLine2Ref,
-  confessionLine3Ref,
   speedLinesRef,
   panelLeftRef,
   panelRightRef,
@@ -139,10 +135,6 @@ export function useTimeline({
     const connectionMessageEl = connectionMessageRef.current;
     const revealEl = revealRef.current;
     const afterglowEl = afterglowRef.current;
-    const confessionEl = confessionRef.current;
-    const confessionLine1El = confessionLine1Ref.current;
-    const confessionLine2El = confessionLine2Ref.current;
-    const confessionLine3El = confessionLine3Ref.current;
 
     const speedLinesEl = speedLinesRef.current;
     const panelLeftEl = panelLeftRef.current;
@@ -166,10 +158,6 @@ export function useTimeline({
       !connectionMessageEl ||
       !revealEl ||
       !afterglowEl ||
-      !confessionEl ||
-      !confessionLine1El ||
-      !confessionLine2El ||
-      !confessionLine3El ||
       !speedLinesEl ||
       !panelLeftEl ||
       !panelRightEl ||
@@ -254,18 +242,6 @@ export function useTimeline({
     gsap.set(afterglowEl, {
       autoAlpha: 0,
       y: 24,
-      filter: "blur(10px)",
-    });
-
-    gsap.set(confessionEl, {
-      autoAlpha: 0,
-      y: 30,
-      filter: "blur(10px)",
-    });
-
-    gsap.set([confessionLine1El, confessionLine2El, confessionLine3El], {
-      autoAlpha: 0,
-      y: 18,
       filter: "blur(10px)",
     });
 
@@ -815,63 +791,10 @@ export function useTimeline({
       171.2,
     );
 
-    timeline.call(() => {
-      setJourneyPhase("confession", "Confession", 6);
-      setJourneyMood?.("confession");
-    }, null, 172);
-
-    timeline.to(
-      confessionEl,
-      {
-        autoAlpha: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 2.1,
-        ease: "sine.out",
-      },
-      172,
-    );
-
-    timeline.to(
-      confessionLine1El,
-      {
-        autoAlpha: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 2.6,
-        ease: "sine.out",
-      },
-      173.1,
-    );
-
-    timeline.to(
-      confessionLine2El,
-      {
-        autoAlpha: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 2.6,
-        ease: "sine.out",
-      },
-      177.9,
-    );
-
-    timeline.to(
-      confessionLine3El,
-      {
-        autoAlpha: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 2.8,
-        ease: "sine.out",
-      },
-      183.7,
-    );
-
-    timeline.to(speedLinesEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 174);
-    timeline.to(glitchOverlayEl, { autoAlpha: 0.03, duration: 8.6, ease: "sine.out" }, 174);
-    timeline.to(frameEl, { autoAlpha: 0.42, duration: 8.6, ease: "sine.out" }, 174);
-    timeline.to(silhouetteEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 174);
+    timeline.to(speedLinesEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 172);
+    timeline.to(glitchOverlayEl, { autoAlpha: 0.03, duration: 8.6, ease: "sine.out" }, 172);
+    timeline.to(frameEl, { autoAlpha: 0.42, duration: 8.6, ease: "sine.out" }, 172);
+    timeline.to(silhouetteEl, { autoAlpha: 0.16, duration: 8.6, ease: "sine.out" }, 172);
 
     timeline.call(() => {
       setWaitingForInteraction(false);
@@ -890,10 +813,6 @@ export function useTimeline({
     afterglowRef,
     blackoutRef,
     burstRef,
-    confessionLine1Ref,
-    confessionLine2Ref,
-    confessionLine3Ref,
-    confessionRef,
     connectionMessageRef,
     connectionRef,
     discoveryCaptionRef,
