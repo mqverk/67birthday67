@@ -1,197 +1,85 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const BPM = 142;
-const STEPS_PER_BEAT = 4;
-const SWING = 0.08;
+const BPM = 72;
+const STEPS = 16;
 
-const KICK_PATTERN = [1,0,0,0,1,0,0,0,1,0,0,0,1,0,1,0];
-const SNARE_PATTERN = [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0];
-const HAT_PATTERN = [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1];
-const BASS_PATTERN = [1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0];
-const LEAD_PATTERN = [1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0];
+/* 🎼 Romantic chord progression (C → Am → F → G) */
+const CHORDS = [
+  [261.63, 329.63, 392.0],   // C
+  [220.0, 261.63, 329.63],   // Am
+  [174.61, 220.0, 261.63],   // F
+  [196.0, 246.94, 329.63],   // G
+];
 
-const BASS_NOTES = [55, 65.41, 73.42, 82.41];
-const LEAD_NOTES = [392, 440, 493.88, 587.33, 659.25, 587.33, 493.88, 440];
+/* 🎹 Soft emotional melody */
+const MELODY = [
+  392, 440, 493.88, 523.25,
+  493.88, 440, 392, 329.63,
+];
 
-function clamp(v, min, max) {
-  return Math.min(max, Math.max(min, v));
+function createReverb(ctx) {
+  const length = ctx.sampleRate * 3;
+  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+
+  for (let c = 0; c < 2; c++) {
+    const data = impulse.getChannelData(c);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+    }
+  }
+
+  const convolver = ctx.createConvolver();
+  convolver.buffer = impulse;
+  return convolver;
 }
-
-function humanize() {
-  return (Math.random() - 0.5) * 0.01;
-}
-
-function createNoiseBuffer(ctx) {
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  return buffer;
-}
-
-function getStepTime(step, base, dur) {
-  return step % 2 ? base + dur * SWING : base;
-}
-
-/* ---------------- DRUMS ---------------- */
-
-function scheduleKick(ctx, dest, t, i) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(180, t);
-  osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(1.2 * i, t + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-
-  osc.connect(gain).connect(dest);
-  osc.start(t);
-  osc.stop(t + 0.25);
-}
-
-function scheduleSnare(ctx, dest, noiseBuf, t, i) {
-  const noise = ctx.createBufferSource();
-  noise.buffer = noiseBuf;
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = 2500;
-
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.3 * i, t + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-
-  noise.connect(filter).connect(gain).connect(dest);
-  noise.start(t);
-  noise.stop(t + 0.2);
-
-  // body
-  const body = ctx.createOscillator();
-  const bg = ctx.createGain();
-
-  body.type = "triangle";
-  body.frequency.setValueAtTime(180, t);
-
-  bg.gain.setValueAtTime(0.0001, t);
-  bg.gain.exponentialRampToValueAtTime(0.25 * i, t + 0.01);
-  bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-
-  body.connect(bg).connect(dest);
-  body.start(t);
-  body.stop(t + 0.2);
-}
-
-function scheduleHat(ctx, dest, noiseBuf, t, i) {
-  const noise = ctx.createBufferSource();
-  noise.buffer = noiseBuf;
-
-  const hp = ctx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 9000;
-
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.04 * i, t + 0.002);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-
-  noise.connect(hp).connect(gain).connect(dest);
-  noise.start(t);
-  noise.stop(t + 0.06);
-}
-
-/* ---------------- MUSIC ---------------- */
-
-function scheduleBass(ctx, dest, t, step, i) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(
-    BASS_NOTES[Math.floor(step / 4) % BASS_NOTES.length],
-    t
-  );
-
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.3 * i, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-
-  osc.connect(gain).connect(dest);
-
-  const length = step % 4 === 0 ? 0.32 : 0.18;
-
-  osc.start(t);
-  osc.stop(t + length);
-}
-
-function scheduleLead(ctx, dest, delay, t, step, i) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  const note = LEAD_NOTES[step % LEAD_NOTES.length];
-
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(note, t);
-  osc.frequency.linearRampToValueAtTime(note, t + 0.02);
-
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.15 * i, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-
-  osc.connect(gain);
-  gain.connect(dest);
-  gain.connect(delay);
-
-  osc.start(t);
-  osc.stop(t + 0.2);
-}
-
-/* ---------------- HOOK ---------------- */
 
 export function useMusicEngine() {
   const ctxRef = useRef(null);
   const masterRef = useRef(null);
   const busRef = useRef(null);
-  const noiseRef = useRef(null);
   const delayRef = useRef(null);
 
   const stepRef = useRef(0);
-  const nextRef = useRef(0);
+  const nextTimeRef = useRef(0);
   const rafRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const ensure = async () => {
+  const init = async () => {
     if (!ctxRef.current) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
       const bus = ctx.createGain();
       const master = ctx.createGain();
+      const delay = ctx.createDelay();
+      const feedback = ctx.createGain();
+      const reverb = createReverb(ctx);
+      const reverbGain = ctx.createGain();
 
-      bus.gain.value = 0.8;
+      bus.gain.value = 0.7;
       master.gain.value = 0.0001;
 
-      // delay
-      const delay = ctx.createDelay();
-      delay.delayTime.value = 0.18;
+      delay.delayTime.value = 0.28;
+      feedback.gain.value = 0.4;
 
-      const fb = ctx.createGain();
-      fb.gain.value = 0.35;
+      reverbGain.gain.value = 0.25;
 
-      delay.connect(fb);
-      fb.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+
+      bus.connect(delay);
+      bus.connect(reverb);
+
+      delay.connect(master);
+      reverb.connect(reverbGain);
+      reverbGain.connect(master);
 
       bus.connect(master);
-      bus.connect(delay);
-      delay.connect(master);
       master.connect(ctx.destination);
 
       ctxRef.current = ctx;
       busRef.current = bus;
       masterRef.current = master;
-      noiseRef.current = createNoiseBuffer(ctx);
       delayRef.current = delay;
     }
 
@@ -202,22 +90,86 @@ export function useMusicEngine() {
     return ctxRef.current;
   };
 
+  /* 🌊 PAD (ambient background) */
+  const playPad = (ctx, t, chord) => {
+    chord.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const pan = ctx.createStereoPanner();
+
+      osc.type = "sine";
+      osc.frequency.value = freq;
+
+      pan.pan.value = i === 0 ? -0.4 : i === 2 ? 0.4 : 0;
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.05, t + 1.5);
+      gain.gain.linearRampToValueAtTime(0.0001, t + 4);
+
+      osc.connect(pan).connect(gain).connect(busRef.current);
+
+      osc.start(t);
+      osc.stop(t + 4);
+    });
+  };
+
+  /* 🎹 MELODY */
+  const playMelody = (ctx, t, step) => {
+    const note = MELODY[step % MELODY.length];
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(note, t);
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(0.08, t + 0.1);
+    gain.gain.linearRampToValueAtTime(0.0001, t + 1.2);
+
+    osc.connect(gain);
+    gain.connect(busRef.current);
+    gain.connect(delayRef.current);
+
+    osc.start(t);
+    osc.stop(t + 1.3);
+  };
+
+  /* 🥁 SOFT KICK */
+  const playKick = (ctx, t) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.15);
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+
+    osc.connect(gain).connect(busRef.current);
+
+    osc.start(t);
+    osc.stop(t + 0.3);
+  };
+
   const schedule = () => {
     const ctx = ctxRef.current;
-    const stepDur = (60 / BPM) / STEPS_PER_BEAT;
+    const stepDur = (60 / BPM) / 2;
 
-    while (nextRef.current < ctx.currentTime + 0.15) {
+    while (nextTimeRef.current < ctx.currentTime + 0.2) {
       const step = stepRef.current;
-      const t = getStepTime(step, nextRef.current, stepDur) + humanize();
+      const t = nextTimeRef.current;
 
-      if (KICK_PATTERN[step]) scheduleKick(ctx, busRef.current, t, 1);
-      if (SNARE_PATTERN[step]) scheduleSnare(ctx, busRef.current, noiseRef.current, t, 1);
-      if (HAT_PATTERN[step]) scheduleHat(ctx, busRef.current, noiseRef.current, t, 1);
-      if (BASS_PATTERN[step]) scheduleBass(ctx, busRef.current, t, step, 1);
-      if (LEAD_PATTERN[step]) scheduleLead(ctx, busRef.current, delayRef.current, t, step, 1);
+      const chord = CHORDS[Math.floor(step / 4) % CHORDS.length];
 
-      stepRef.current = (step + 1) % 16;
-      nextRef.current += stepDur;
+      if (step % 4 === 0) playPad(ctx, t, chord);
+      if (step % 2 === 0) playMelody(ctx, t, step);
+      if (step % 8 === 0) playKick(ctx, t);
+
+      stepRef.current = (step + 1) % STEPS;
+      nextTimeRef.current += stepDur;
     }
   };
 
@@ -227,12 +179,12 @@ export function useMusicEngine() {
   };
 
   const start = async () => {
-    const ctx = await ensure();
+    const ctx = await init();
 
     stepRef.current = 0;
-    nextRef.current = ctx.currentTime;
+    nextTimeRef.current = ctx.currentTime;
 
-    masterRef.current.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.3);
+    masterRef.current.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 1.5);
 
     loop();
     setIsPlaying(true);
@@ -240,9 +192,19 @@ export function useMusicEngine() {
 
   const stop = () => {
     cancelAnimationFrame(rafRef.current);
-    masterRef.current.gain.linearRampToValueAtTime(0.0001, ctxRef.current.currentTime + 0.2);
+    masterRef.current.gain.linearRampToValueAtTime(
+      0.0001,
+      ctxRef.current.currentTime + 1
+    );
     setIsPlaying(false);
   };
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (ctxRef.current) ctxRef.current.close();
+    };
+  }, []);
 
   return { start, stop, isPlaying };
 }
